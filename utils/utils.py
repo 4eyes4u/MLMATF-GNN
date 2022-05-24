@@ -7,6 +7,15 @@ import numpy as np
 import scipy.sparse as sparse
 
 
+CORA_PARAMS = {
+    "train_range": [0, 140],
+    "val_range": [140, 640],
+    "test_range": [1708, 2708],
+    "num_features": 1433,
+    "num_classes": 7
+}
+
+
 def read_from_binary(path: str):
     """Reads data from binary file.
 
@@ -39,19 +48,19 @@ def normalize_node_features(node_features: Union[np.ndarray, sparse.csr.csr_matr
     return node_features_normalized
 
 
-def load_cora(config: Dict[str, Any]):
+def load_cora(data_dir: str):
     """Loads CORA dataset.
 
     Args:
-        config (dict) config dictionary with paths and everyting necessary:
+        data_dir (str): data directory.
 
     Returns:
         node_features, node_labels, topology (tuple): pre-processed data.
     """
     # reading raw data
-    node_features = read_from_binary(os.path.join(config["data_dir"], "node_features.csr"))
-    node_labels = read_from_binary(os.path.join(config["data_dir"], "node_labels.npy"))
-    adjacency_list = read_from_binary(os.path.join(config["data_dir"], "adjacency_list.dict"))
+    node_features = read_from_binary(os.path.join(data_dir, "node_features.csr"))
+    node_labels = read_from_binary(os.path.join(data_dir, "node_labels.npy"))
+    adjacency_list = read_from_binary(os.path.join(data_dir, "adjacency_list.dict"))
 
     node_features = normalize_node_features(node_features)
 
