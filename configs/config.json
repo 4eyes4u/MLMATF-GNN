@@ -8,5 +8,6 @@
         "add_skip_connection": false,
         "num_features_per_layer": [1433, 8, 7],
         "dropout_prob": 0.6
-    }
+    },
+    "ckpt_freq": 100
 }

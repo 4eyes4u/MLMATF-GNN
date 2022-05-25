@@ -1,3 +1,4 @@
+import datetime
 import json
 import networkx as nx
 import os
@@ -15,6 +16,47 @@ CORA_PARAMS = {
     "num_features": 1433,
     "num_classes": 7
 }
+
+
+def generate_unique_name() -> str:
+    """Generates (unique) name that is used for naming local runs.
+
+    Returns:
+        run_name (str): unique name.
+    """
+    run_name = datetime.datetime.utcnow().strftime("%y-%m-%d-%H-%M-%S-%f")
+
+    return run_name
+
+
+def make_dir_hierarchy() -> Dict[str, str]:
+    """Creating all necessary directories that the current run will use.
+
+    Returns:
+        paths (argparse.Namespace): dictionary with created paths and other information.
+    """
+    run_name = generate_unique_name()
+
+    # directory for storing information of current run
+    runs_path = os.path.join("logs", run_name)
+    os.makedirs(runs_path, exist_ok=True)
+
+    # directory for storing log (including loss information)
+    log_path = os.path.join(runs_path, "log")
+    os.makedirs(log_path, exist_ok=True)
+
+    # directory for storing checkpoints
+    checkpoints_path = os.path.join(runs_path, "checkpoints")
+    os.makedirs(checkpoints_path, exist_ok=True)
+
+    paths = {
+        "run_name": run_name,
+        "runs_path": runs_path,
+        "log_path": log_path,
+        "checkpoints_path": checkpoints_path
+    }
+
+    return paths
 
 
 def load_train_config(path: str) -> Dict[str, Any]:
