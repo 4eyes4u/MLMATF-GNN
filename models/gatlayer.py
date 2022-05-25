@@ -1,21 +1,36 @@
+"""Definition of GAT layer."""
+from typing import Tuple
+
 import torch
 import torch.nn as nn
 
-from typing import Tuple
-
 
 class GATLayer(nn.Module):
+    """Class for GAT's elementary layer."""
+
     def __init__(self, num_in_features: int, num_out_features: int, num_heads: int, dropout_prob: float = 0.6,
-                 concat_heads: bool = False, add_skip_connection: bool = True):
+                 to_aggregate_heads: bool = False, add_skip_connection: bool = True):
+        """Constructor of GAT layer.
+
+        Args:
+            num_in_features (int): number of input features.
+            num_out_features (int): number of output features.
+            num_heads (int): number of attention heads.
+            dropout_prob (float): probability of dropout.
+            to_aggregate_heads (bool): aggregate features of attention heads (True) or not (False).
+            add_skip_connection (bool): to add (True) or not (False) residual/skip connection.
+        """
         super().__init__()
 
+        # head's dimension
         self._head_dim = 1
         self._num_in_features = num_in_features
         self._num_out_features = num_out_features
         self._num_heads = num_heads
-        self._concat_heads = concat_heads
+        self._to_aggregate_heads = to_aggregate_heads
         self._add_skip_connection = add_skip_connection
 
+        # projection and scoring mappings
         self._proj_param = nn.Parameter(torch.Tensor(num_heads, num_in_features, num_out_features))
         self._scoring_source = nn.Parameter(torch.Tensor(num_heads, num_out_features, 1))
         self._scoring_target = nn.Parameter(torch.Tensor(num_heads, num_out_features, 1))
@@ -35,6 +50,18 @@ class GATLayer(nn.Module):
         nn.init.xavier_uniform_(self._scoring_target)
 
     def _aggregate_heads(self, in_node_features: torch.Tensor, out_node_features: torch.Tensor) -> torch.Tensor:
+        """Aggregate features of all attention heads.
+
+        Aggregation is either cocatenation or mean.
+
+        Args:
+            in_node_features (torch.Tensor): input node features.
+            out_node_features (torch.Tensor): output node features.
+
+        Returns:
+            out_node_features (torch.Tensor): aggregated node features.
+        """
+        # view will raise an exception if underlying memory isn't contiguous
         if not out_node_features.is_contiguous():
             out_node_features = out_node_features.contiguous()
 
@@ -44,7 +71,7 @@ class GATLayer(nn.Module):
             else:
                 out_node_features += self._skip_proj(in_node_features).view(-1, self._num_heads, self._num_out_features)
 
-        if self._concat_heads:
+        if self._to_aggregate_heads:
             out_node_features = out_node_features.view(-1, self._num_heads * self._num_out_features)
         else:
             out_node_features = torch.mean(out_node_features, dim=self._head_dim)
@@ -54,6 +81,16 @@ class GATLayer(nn.Module):
         return out_node_features
 
     def forward(self, data: Tuple[torch.Tensor, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Forward pass.
+
+        Input needs to be fed as a tuple because GAT is defined as a sequential model.
+
+        Args:
+            data (tuple): input node features and graph topology.
+
+        Returns:
+            out_node_features, topology (tuple): output node features and graph topology.
+        """
         in_node_features, topology = data
         num_nodes = in_node_features.shape[0]
         assert topology.shape == (num_nodes, num_nodes), "Adjacency matrix has invalid shape."

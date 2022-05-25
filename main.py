@@ -1,18 +1,27 @@
-import logging
+"""Entry script."""
 import json
+import logging
 import os
 import time
+from typing import Any, Dict
 
+from models import GAT
 import torch
 import torch.nn as nn
 from torch.optim import Adam
-
-from utils.utils import CORA_PARAMS, load_cora, load_train_config, make_dir_hierarchy
-from models import GAT
+from utils import CORA_PARAMS, load_cora, load_train_config, make_dir_hierarchy
+from utils.metrics import calc_accuracy
 
 
 class GATTrainer:
-    def __init__(self, config):
+    """Class used for training the GAT."""
+
+    def __init__(self, config: Dict[str, Any]):
+        """Constructor.
+
+        Args:
+            config (dict): configuration of the training, inference and the model.
+        """
         self._paths = make_dir_hierarchy()
         self._setup_logger(os.path.join(self._paths["log_path"], "log.txt"))
 
@@ -35,6 +44,13 @@ class GATTrainer:
         self._model = GAT(**config["model_kwargs"]).to(self._device)
         self._criterion = nn.CrossEntropyLoss()
         self._optimizer = Adam(self._model.parameters(), lr=config["lr"], weight_decay=config["weight_decay"])
+
+        self._aggregator = {}
+
+    def _update_aggregator(self, name: str, value: float) -> None:
+        aggregated_values = self._aggregator.get(name, [])
+        aggregated_values.append(value)
+        self._aggregator[name] = aggregated_values
 
     def _setup_logger(self, log_path: str) -> None:
         """Setup logging to print logs to both file and stdout.
@@ -66,27 +82,69 @@ class GATTrainer:
 
             pred_labels = self._model(graph_data)[0].index_select(0, train_indices)
             loss = self._criterion(pred_labels, train_labels)
-            logging.info(f"epoch={epoch}: CELoss={loss.item():.5f}")
+            accuracy = calc_accuracy(pred_labels, train_labels)
+
+            logging.info(f"epoch={epoch}: CE_train={loss.item():.5f} ACC_train={accuracy:.0%}")
+            self._update_aggregator("CE_train", (epoch, loss.item()))
+            self._update_aggregator("ACC_train", (epoch, accuracy))
 
             loss.backward()
             self._optimizer.step()
-            self.run_val()
 
             if epoch % self._config["ckpt_freq"] == 0:
                 self._dump_model(epoch)
 
-    def run_val(self):
-        self._model.eval()
+            if epoch % self._config["val_freq"] == 0:
+                self._run_val(epoch)
 
-    def run_test(self):
-        self._model.eval()
+            if epoch % self._config["test_freq"] == 0:
+                self._run_test(epoch)
 
-    def _dump_model(self, epoch):
+    def _run_val(self, epoch: int):
+        val_labels = self._node_labels.index_select(0, self._indices["val"])
+        val_indices = self._indices["val"]
+        graph_data = (self._node_features, self._topology)
+
+        self._model.eval()
+        pred_labels = self._model(graph_data)[0].index_select(0, val_indices)
+        loss = self._criterion(pred_labels, val_labels)
+        accuracy = calc_accuracy(pred_labels, val_labels)
+
+        logging.info(f"epoch={epoch}: CE_val={loss.item():.5f} ACC_val={accuracy:.0%}")
+        self._update_aggregator("CE_val", (epoch, loss.item()))
+        self._update_aggregator("ACC_val", (epoch, accuracy))
+
+    def _run_test(self, epoch: int):
+        test_labels = self._node_labels.index_select(0, self._indices["test"])
+        test_indices = self._indices["test"]
+        graph_data = (self._node_features, self._topology)
+
+        self._model.eval()
+        pred_labels = self._model(graph_data)[0].index_select(0, test_indices)
+        loss = self._criterion(pred_labels, test_labels)
+        accuracy = calc_accuracy(pred_labels, test_labels)
+
+        logging.info(f"epoch={epoch}: CE_test={loss.item():.5f} ACC_test={accuracy:.0%}")
+        self._update_aggregator("CE_test", (epoch, loss.item()))
+        self._update_aggregator("ACC_test", (epoch, accuracy))
+
+    def _dump_model(self, epoch: int) -> None:
+        """Dumps current checkpoint.
+
+        Args:
+            epoch (int): current epoch.
+        """
         ckpt_path = os.path.join(self._paths["checkpoints_path"], f"gat_{epoch}.ckpt")
         torch.save(self._model.state_dict(), ckpt_path)
+
+    @property
+    def aggregator(self):
+        return self._aggregator
 
 
 if __name__ == "__main__":
     config = load_train_config(".\\configs\\config.json")
     trainer = GATTrainer(config)
     trainer.run_training()
+
+    aggregator = trainer.aggregator

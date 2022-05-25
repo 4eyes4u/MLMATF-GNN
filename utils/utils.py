@@ -1,10 +1,11 @@
+"""Utility script."""
 import datetime
 import json
-import networkx as nx
 import os
 import pickle
 from typing import Any, Dict, Union
 
+import networkx as nx
 import numpy as np
 import scipy.sparse as sparse
 

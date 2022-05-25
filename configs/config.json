@@ -1,6 +1,6 @@
 {
     "data_dir": ".\\data",
-    "epochs": 1000,
+    "epochs": 300,
     "lr": 0.005,
     "weight_decay": 0.0005,
     "model_kwargs": {
@@ -9,5 +9,7 @@
         "num_features_per_layer": [1433, 8, 7],
         "dropout_prob": 0.6
     },
-    "ckpt_freq": 100
+    "ckpt_freq": 100,
+    "val_freq": 10,
+    "test_freq": 10
 }
