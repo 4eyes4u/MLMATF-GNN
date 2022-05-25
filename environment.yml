@@ -17,3 +17,10 @@ dependencies:
     - networkx==2.5
     - python-igraph==0.8.3
     - pycairo==1.20.0
+    - flake8
+    - flake8-bugbear
+    - flake8-builtins
+    - flake8-docstrings
+    - flake8-import-order
+    - flake8-quotes
+    - pep8-naming

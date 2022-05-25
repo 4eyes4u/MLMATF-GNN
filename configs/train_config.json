@@ -1,0 +1,12 @@
+{
+    "data_dir": ".\\data",
+    "epochs": 1000,
+    "lr": 0.005,
+    "weight_decay": 0.0005,
+    "model_kwargs": {
+        "num_heads_per_layer": [8, 1],
+        "add_skip_connection": false,
+        "num_features_per_layer": [1433, 8, 7],
+        "dropout_prob": 0.6
+    }
+}

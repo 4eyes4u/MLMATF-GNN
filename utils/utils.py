@@ -1,7 +1,8 @@
-import pickle
-import os
-from typing import Any, Dict, Union
+import json
 import networkx as nx
+import os
+import pickle
+from typing import Any, Dict, Union
 
 import numpy as np
 import scipy.sparse as sparse
@@ -14,6 +15,21 @@ CORA_PARAMS = {
     "num_features": 1433,
     "num_classes": 7
 }
+
+
+def load_train_config(path: str) -> Dict[str, Any]:
+    """Reads JSON config file and returns it.
+
+    Args:
+        path (str): config path.
+
+    Returns:
+        config (dict): config.
+    """
+    with open(path, "r") as f:
+        config = json.load(f)
+
+    return config
 
 
 def read_from_binary(path: str):

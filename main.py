@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 from torch.optim import Adam
 
-from utils.utils import CORA_PARAMS, load_cora
+from utils.utils import CORA_PARAMS, load_cora, load_train_config
 from models import GAT
 
 
@@ -35,7 +35,9 @@ class GATTrainer:
             self._optimizer.zero_grad()
 
             pred_labels = self._model(graph_data)[0].index_select(0, train_indices)
-            loss = self._criterion(train_labels, pred_labels)
+            loss = self._criterion(pred_labels, train_labels)
+
+            print(f"{epoch}: {loss.item():.5f}")
 
             loss.backward()
             self._optimizer.step()
@@ -48,7 +50,7 @@ class GATTrainer:
         self._model.eval()
 
 
-if __name__ == "__main__":    
-    config = {"data_dir": ".\\data", "lr": 1e-4, "weight_decay": 1e-6, "model_kwargs": {}}
+if __name__ == "__main__":
+    config = load_train_config(".\\configs\\train_config.json")
     trainer = GATTrainer(config)
     trainer.run_training()
