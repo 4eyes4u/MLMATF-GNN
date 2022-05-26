@@ -2,7 +2,7 @@
 inline-quotes = double
 import-order-style = google
 docstring-convention = google
-max-line-length = 120
+max-line-length = 140
 
 extend-ignore =
     E203, # Whitespace before ':'

@@ -30,6 +30,9 @@ class GATLayer(nn.Module):
         self._to_aggregate_heads = to_aggregate_heads
         self._add_skip_connection = add_skip_connection
 
+        # not used during training - only for logging/visualization
+        self._attention_weights = None
+
         # projection and scoring mappings
         self._proj_param = nn.Parameter(torch.Tensor(num_heads, num_in_features, num_out_features))
         self._scoring_source = nn.Parameter(torch.Tensor(num_heads, num_out_features, 1))
@@ -49,18 +52,23 @@ class GATLayer(nn.Module):
         nn.init.xavier_uniform_(self._scoring_source)
         nn.init.xavier_uniform_(self._scoring_target)
 
-    def _aggregate_heads(self, in_node_features: torch.Tensor, out_node_features: torch.Tensor) -> torch.Tensor:
+    def _aggregate_heads(self, attention_weights: torch.Tensor, in_node_features: torch.Tensor, out_node_features: torch.Tensor) \
+            -> torch.Tensor:
         """Aggregate features of all attention heads.
 
         Aggregation is either cocatenation or mean.
 
         Args:
+            attention_weights (torch.Tensor): attention coefficients.
             in_node_features (torch.Tensor): input node features.
             out_node_features (torch.Tensor): output node features.
 
         Returns:
             out_node_features (torch.Tensor): aggregated node features.
         """
+        # for later inspection
+        self._attention_weights = attention_weights
+
         # view will raise an exception if underlying memory isn't contiguous
         if not out_node_features.is_contiguous():
             out_node_features = out_node_features.contiguous()
@@ -102,11 +110,11 @@ class GATLayer(nn.Module):
         edge_scores_source = torch.bmm(node_features_proj, self._scoring_source)
         edge_scores_target = torch.bmm(node_features_proj, self._scoring_target)
         edge_scores = self._activation(edge_scores_source + edge_scores_target.transpose(1, 2))
-        attention_coeffs = self._softmax(edge_scores + topology)
+        attention_weights = self._softmax(edge_scores + topology)
 
-        out_node_features = torch.bmm(attention_coeffs, node_features_proj)
+        out_node_features = torch.bmm(attention_weights, node_features_proj)
         out_node_features = out_node_features.transpose(0, 1)
 
-        out_node_features = self._aggregate_heads(in_node_features, out_node_features)
+        out_node_features = self._aggregate_heads(attention_weights, in_node_features, out_node_features)
 
         return out_node_features, topology

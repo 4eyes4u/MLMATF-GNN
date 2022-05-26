@@ -1,10 +1,12 @@
-"""Entry script."""
+"""Entry training script."""
+import argparse
 import json
 import logging
 import os
 import time
-from typing import Any, Dict
+from typing import Any, Dict, List, Tuple
 
+import matplotlib.pyplot as plt
 from models import GAT
 import torch
 import torch.nn as nn
@@ -45,6 +47,7 @@ class GATTrainer:
         self._criterion = nn.CrossEntropyLoss()
         self._optimizer = Adam(self._model.parameters(), lr=config["lr"], weight_decay=config["weight_decay"])
 
+        # saves all metrics and losses during training
         self._aggregator = {}
 
     def _update_aggregator(self, name: str, value: float) -> None:
@@ -71,6 +74,16 @@ class GATTrainer:
         )
         logging.Formatter.converter = time.gmtime
 
+    def _prepare_log(self, epoch, ce, acc, name):
+        epoch_length = len(str(self._config["epochs"]))
+        total_length = len(f"epoch=[{self._config['epochs']}/{self._config['epochs']}]:")
+        epoch_log = f"epoch=[{epoch:>{epoch_length}}/{self._config['epochs']}]:"
+        ce_log = f"CE_{name}={ce:.5f}"
+        acc_log = f"ACC_{name}={acc:.0%}"
+        log = f"{epoch_log:<{total_length}} {ce_log:>16} {acc_log:>14}"
+
+        return log
+
     def run_training(self):
         train_labels = self._node_labels.index_select(0, self._indices["train"])
         train_indices = self._indices["train"]
@@ -84,7 +97,7 @@ class GATTrainer:
             loss = self._criterion(pred_labels, train_labels)
             accuracy = calc_accuracy(pred_labels, train_labels)
 
-            logging.info(f"epoch={epoch}: CE_train={loss.item():.5f} ACC_train={accuracy:.0%}")
+            logging.info(self._prepare_log(epoch, loss.item(), accuracy, "train"))
             self._update_aggregator("CE_train", (epoch, loss.item()))
             self._update_aggregator("ACC_train", (epoch, accuracy))
 
@@ -94,10 +107,10 @@ class GATTrainer:
             if epoch % self._config["ckpt_freq"] == 0:
                 self._dump_model(epoch)
 
-            if epoch % self._config["val_freq"] == 0:
+            if epoch == 1 or epoch % self._config["val_freq"] == 0:
                 self._run_val(epoch)
 
-            if epoch % self._config["test_freq"] == 0:
+            if epoch == 1 or epoch % self._config["test_freq"] == 0:
                 self._run_test(epoch)
 
     def _run_val(self, epoch: int):
@@ -110,7 +123,7 @@ class GATTrainer:
         loss = self._criterion(pred_labels, val_labels)
         accuracy = calc_accuracy(pred_labels, val_labels)
 
-        logging.info(f"epoch={epoch}: CE_val={loss.item():.5f} ACC_val={accuracy:.0%}")
+        logging.info(self._prepare_log(epoch, loss.item(), accuracy, "val"))
         self._update_aggregator("CE_val", (epoch, loss.item()))
         self._update_aggregator("ACC_val", (epoch, accuracy))
 
@@ -124,7 +137,7 @@ class GATTrainer:
         loss = self._criterion(pred_labels, test_labels)
         accuracy = calc_accuracy(pred_labels, test_labels)
 
-        logging.info(f"epoch={epoch}: CE_test={loss.item():.5f} ACC_test={accuracy:.0%}")
+        logging.info(self._prepare_log(epoch, loss.item(), accuracy, "test"))
         self._update_aggregator("CE_test", (epoch, loss.item()))
         self._update_aggregator("ACC_test", (epoch, accuracy))
 
@@ -139,12 +152,44 @@ class GATTrainer:
 
     @property
     def aggregator(self):
+        """Getter for aggregator."""
         return self._aggregator
 
 
+def plot_metrics(aggregator: Dict[str, List[Tuple[float, float]]], metric_name: str, axis):
+    metric_name = metric_name.upper()
+    suffixes = ["train", "val", "test"]
+    colors = ["blue", "green", "red"]
+
+    for suffix, color in zip(suffixes, colors):
+        name = f"{metric_name}_{suffix}"
+        metric_values = aggregator[name]
+        x_coords = list(map(lambda p: p[0], metric_values))
+        y_coords = list(map(lambda p: p[1], metric_values))
+
+        axis.plot(x_coords, y_coords, label=suffix, color=color)
+
+    axis.legend(loc="upper right")
+    axis.set_title(metric_name)
+    axis.grid()
+
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--plot", help="Plot metrics & losses.", action="store_true", default=False)
+    args, _ = parser.parse_known_args()
+
     config = load_train_config(".\\configs\\config.json")
     trainer = GATTrainer(config)
     trainer.run_training()
 
-    aggregator = trainer.aggregator
+    if args.plot:
+        aggregator = trainer.aggregator
+        fig, axes = plt.subplots(2)
+
+        # plotting loss
+        plot_metrics(aggregator, "CE", axes[0])
+        # plotting accuracy
+        plot_metrics(aggregator, "ACC", axes[1])
+
+        plt.show()
