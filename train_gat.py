@@ -179,7 +179,7 @@ if __name__ == "__main__":
     parser.add_argument("--plot", help="Plot metrics & losses.", action="store_true", default=False)
     args, _ = parser.parse_known_args()
 
-    config = load_train_config(".\\configs\\config.json")
+    config = load_train_config(".\\configs\\config_gat.json")
     trainer = GATTrainer(config)
     trainer.run_training()
 
