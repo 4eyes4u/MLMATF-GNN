@@ -87,7 +87,7 @@ def read_from_binary(path: str):
     return data
 
 
-def normalize_node_features(node_features: Union[np.ndarray, sparse.csr.csr_matrix]):
+def normalize_features(features: Union[np.ndarray, sparse.csr.csr_matrix]):
     """Normalize each row to the unit row.
 
     Args:
@@ -96,22 +96,23 @@ def normalize_node_features(node_features: Union[np.ndarray, sparse.csr.csr_matr
     Returns:
         node_features_normalized (union): normalized node features.
     """
-    node_features_sum = np.array(np.sum(node_features, axis=1))
+    features_sum = np.array(np.sum(features, axis=1))
 
-    node_features_inv_sum = np.squeeze(1 / node_features_sum)
-    node_features_inv_sum[np.isinf(node_features_inv_sum)] = 1
+    features_inv_sum = np.squeeze(1.0 / features_sum)
+    features_inv_sum[np.isinf(features_inv_sum)] = 1
 
-    node_features_inv_sum_diag = sparse.diags(node_features_inv_sum)
-    node_features_normalized = node_features_inv_sum_diag.dot(node_features)
+    features_inv_sum_diag = sparse.diags(features_inv_sum)
+    features_normalized = features_inv_sum_diag.dot(features)
 
-    return node_features_normalized
+    return features_normalized
 
 
-def load_cora(data_dir: str):
+def load_cora(data_dir: str, topology_normalization: str):
     """Loads CORA dataset.
 
     Args:
         data_dir (str): data directory.
+        topology_normalization (str): how to normalize topology.
 
     Returns:
         node_features, node_labels, topology (tuple): pre-processed data.
@@ -121,17 +122,19 @@ def load_cora(data_dir: str):
     node_labels = read_from_binary(os.path.join(data_dir, "node_labels.npy"))
     adjacency_list = read_from_binary(os.path.join(data_dir, "adjacency_list.dict"))
 
-    node_features = normalize_node_features(node_features)
+    node_features = normalize_features(node_features)
 
     # making dense adjacency matrix ready for softmax to be applied
     topology = nx.adjacency_matrix(nx.from_dict_of_lists(adjacency_list))
     topology = topology.todense().astype(np.float32)
     # adding loops
     topology += np.identity(topology.shape[0])
-    # handling parallel edges
-    topology[topology > 0] = 1
-    # making topology ready for softmax (-np.inf -> 0; 0 -> 1)
-    topology[topology == 0] = -np.inf
-    topology[topology == 1] = 0
+
+    if topology_normalization == "softmax":
+        # making topology ready for softmax (-np.inf -> 0; 0 -> 1)
+        topology[topology == 0] = -np.inf
+        topology[topology == 1] = 0
+    elif topology_normalization == "unit":
+        topology = normalize_features(topology)
 
     return node_features, node_labels, topology

@@ -33,7 +33,7 @@ class GATTrainer:
         self._config = config
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        node_features, node_labels, topology = load_cora(config["data_dir"])
+        node_features, node_labels, topology = load_cora(config["data_dir"], "softmax")
         self._node_features = torch.tensor(node_features.todense(), device=self._device)
         self._node_labels = torch.tensor(node_labels, dtype=torch.long, device=self._device)
         self._topology = torch.tensor(topology, dtype=torch.float32, device=self._device)

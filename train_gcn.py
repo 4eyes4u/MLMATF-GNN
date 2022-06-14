@@ -7,7 +7,7 @@ import time
 from typing import Any, Dict, List, Tuple
 
 import matplotlib.pyplot as plt
-from models import MLP
+from models import GCN
 import torch
 import torch.nn as nn
 from torch.optim import Adam
@@ -15,7 +15,7 @@ from utils import CORA_PARAMS, load_cora, load_train_config, make_dir_hierarchy
 from utils.metrics import calc_accuracy
 
 
-class MLPTrainer:
+class GATTrainer:
     """Class used for training the GAT."""
 
     def __init__(self, config: Dict[str, Any]):
@@ -33,16 +33,17 @@ class MLPTrainer:
         self._config = config
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        node_features, node_labels, _ = load_cora(config["data_dir"], "softmax")
+        node_features, node_labels, topology = load_cora(config["data_dir"], "unit")
         self._node_features = torch.tensor(node_features.todense(), device=self._device)
         self._node_labels = torch.tensor(node_labels, dtype=torch.long, device=self._device)
+        self._topology = torch.tensor(topology, dtype=torch.float32, device=self._device)
         self._indices = {
             "train": torch.arange(*CORA_PARAMS["train_range"], dtype=torch.long, device=self._device),
             "val": torch.arange(*CORA_PARAMS["val_range"], dtype=torch.long, device=self._device),
             "test": torch.arange(*CORA_PARAMS["test_range"], dtype=torch.long, device=self._device)
         }
 
-        self._model = MLP(**config["model_kwargs"]).to(self._device)
+        self._model = GCN(**config["model_kwargs"]).to(self._device)
         self._criterion = nn.CrossEntropyLoss()
         self._optimizer = Adam(self._model.parameters(), lr=config["lr"], weight_decay=config["weight_decay"])
 
@@ -86,12 +87,13 @@ class MLPTrainer:
     def run_training(self):
         train_labels = self._node_labels.index_select(0, self._indices["train"])
         train_indices = self._indices["train"]
+        graph_data = (self._node_features, self._topology)
 
         for epoch in range(1, self._config["epochs"] + 1):
             self._model.train()
             self._optimizer.zero_grad()
 
-            pred_labels = self._model(self._node_features).index_select(0, train_indices)
+            pred_labels = self._model(graph_data)[0].index_select(0, train_indices)
             loss = self._criterion(pred_labels, train_labels)
             accuracy = calc_accuracy(pred_labels, train_labels)
 
@@ -114,9 +116,10 @@ class MLPTrainer:
     def _run_val(self, epoch: int):
         val_labels = self._node_labels.index_select(0, self._indices["val"])
         val_indices = self._indices["val"]
+        graph_data = (self._node_features, self._topology)
 
         self._model.eval()
-        pred_labels = self._model(self._node_features).index_select(0, val_indices)
+        pred_labels = self._model(graph_data)[0].index_select(0, val_indices)
         loss = self._criterion(pred_labels, val_labels)
         accuracy = calc_accuracy(pred_labels, val_labels)
 
@@ -127,9 +130,10 @@ class MLPTrainer:
     def _run_test(self, epoch: int):
         test_labels = self._node_labels.index_select(0, self._indices["test"])
         test_indices = self._indices["test"]
+        graph_data = (self._node_features, self._topology)
 
         self._model.eval()
-        pred_labels = self._model(self._node_features).index_select(0, test_indices)
+        pred_labels = self._model(graph_data)[0].index_select(0, test_indices)
         loss = self._criterion(pred_labels, test_labels)
         accuracy = calc_accuracy(pred_labels, test_labels)
 
@@ -175,8 +179,8 @@ if __name__ == "__main__":
     parser.add_argument("--plot", help="Plot metrics & losses.", action="store_true", default=False)
     args, _ = parser.parse_known_args()
 
-    config = load_train_config(".\\configs\\config_mlp.json")
-    trainer = MLPTrainer(config)
+    config = load_train_config(".\\configs\\config_gcn.json")
+    trainer = GATTrainer(config)
     trainer.run_training()
 
     if args.plot:
