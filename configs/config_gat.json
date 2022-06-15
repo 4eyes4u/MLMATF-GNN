@@ -1,4 +1,5 @@
 {
+    "model_name": "GAT",
     "data_dir": ".\\data",
     "epochs": 300,
     "lr": 0.005,

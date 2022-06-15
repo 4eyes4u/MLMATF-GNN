@@ -7,7 +7,7 @@ import time
 from typing import Any, Dict, List, Tuple
 
 import matplotlib.pyplot as plt
-from models import GCN
+import models
 import torch
 import torch.nn as nn
 from torch.optim import Adam
@@ -15,7 +15,7 @@ from utils import CORA_PARAMS, load_cora, load_train_config, make_dir_hierarchy
 from utils.metrics import calc_accuracy
 
 
-class GATTrainer:
+class Trainer:
     """Class used for training the GAT."""
 
     def __init__(self, config: Dict[str, Any]):
@@ -33,7 +33,8 @@ class GATTrainer:
         self._config = config
         self._device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        node_features, node_labels, topology = load_cora(config["data_dir"], "unit")
+        topology_normalization = "unit" if config["model_name"] == "GCN" else "softmax"
+        node_features, node_labels, topology = load_cora(config["data_dir"], topology_normalization)
         self._node_features = torch.tensor(node_features.todense(), device=self._device)
         self._node_labels = torch.tensor(node_labels, dtype=torch.long, device=self._device)
         self._topology = torch.tensor(topology, dtype=torch.float32, device=self._device)
@@ -43,7 +44,8 @@ class GATTrainer:
             "test": torch.arange(*CORA_PARAMS["test_range"], dtype=torch.long, device=self._device)
         }
 
-        self._model = GCN(**config["model_kwargs"]).to(self._device)
+        self._model: nn.Module = getattr(models, config["model_name"])(**config["model_kwargs"])
+        self._model = self._model.to(self._device)
         self._criterion = nn.CrossEntropyLoss()
         self._optimizer = Adam(self._model.parameters(), lr=config["lr"], weight_decay=config["weight_decay"])
 
@@ -79,8 +81,8 @@ class GATTrainer:
         total_length = len(f"epoch=[{self._config['epochs']}/{self._config['epochs']}]:")
         epoch_log = f"epoch=[{epoch:>{epoch_length}}/{self._config['epochs']}]:"
         ce_log = f"CE_{name}={ce:.5f}"
-        acc_log = f"ACC_{name}={acc:.0%}"
-        log = f"{epoch_log:<{total_length}} {ce_log:>16} {acc_log:>14}"
+        acc_log = f"ACC_{name}={acc:.2%}"
+        log = f"{epoch_log:<{total_length}} {ce_log:>16} {acc_log:>16}"
 
         return log
 
@@ -155,6 +157,11 @@ class GATTrainer:
         """Getter for aggregator."""
         return self._aggregator
 
+    @property
+    def model(self) -> nn.Module:
+        """Getter for model."""
+        return self._model
+
 
 def plot_metrics(aggregator: Dict[str, List[Tuple[float, float]]], metric_name: str, axis):
     metric_name = metric_name.upper()
@@ -177,10 +184,11 @@ def plot_metrics(aggregator: Dict[str, List[Tuple[float, float]]], metric_name: 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--plot", help="Plot metrics & losses.", action="store_true", default=False)
+    parser.add_argument("--config_path", help="Path of config file.", type=str, required=True)
     args, _ = parser.parse_known_args()
 
-    config = load_train_config(".\\configs\\config_gcn.json")
-    trainer = GATTrainer(config)
+    config = load_train_config(args.config_path)
+    trainer = Trainer(config)
     trainer.run_training()
 
     if args.plot:

@@ -1,4 +1,5 @@
 {
+    "model_name": "GCN",
     "data_dir": ".\\data",
     "epochs": 200,
     "lr": 0.01,

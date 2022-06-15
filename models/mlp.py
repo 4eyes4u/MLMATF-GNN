@@ -1,5 +1,5 @@
 """Definition of MLP."""
-from typing import List
+from typing import List, Tuple
 
 import torch
 import torch.nn as nn
@@ -23,8 +23,9 @@ class MLP(nn.Module):
         self._net = nn.Sequential(*layers)
         self._softmax = nn.Softmax(dim=-1)
 
-    def forward(self, x: torch.Tensor):
+    def forward(self, data: Tuple[torch.Tensor, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
+        x, topology = data
         output = self._net(x)
         output = self._softmax(output)
 
-        return output
+        return output, topology

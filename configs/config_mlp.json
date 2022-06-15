@@ -1,4 +1,5 @@
 {
+    "model_name": "MLP",
     "data_dir": ".\\data",
     "epochs": 300,
     "lr": 0.005,
