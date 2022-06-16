@@ -24,6 +24,7 @@ class Trainer:
         Args:
             config (dict): configuration of the training, inference and the model.
         """
+
         self._paths = make_dir_hierarchy()
         self._setup_logger(os.path.join(self._paths["log_path"], "log.txt"))
 
