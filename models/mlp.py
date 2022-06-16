@@ -6,7 +6,16 @@ import torch.nn as nn
 
 
 class MLP(nn.Module):
+    """Class for simple Multi-Layer Perceptron (MLP)."""
+
     def __init__(self, input_dim: int, intermediate_dim: List[int], output_dim: int):
+        """Constructor.
+
+        Args:
+            input_dim (int): input dimension.
+            intermediate_dim (list): number of neurons for each intermediate layer.
+            output_dim (int): output dimension.
+        """
         super().__init__()
 
         layers = []
@@ -24,6 +33,16 @@ class MLP(nn.Module):
         self._softmax = nn.Softmax(dim=-1)
 
     def forward(self, data: Tuple[torch.Tensor, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Forward pass.
+
+        Input requires topology due to compatibility with other models.
+
+        Args:
+            data (tuple): input node features and graph topology.
+
+        Returns:
+            output (tuple): output node features and graph topology.
+        """
         x, topology = data
         output = self._net(x)
         output = self._softmax(output)

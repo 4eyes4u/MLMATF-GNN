@@ -87,6 +87,7 @@ class Trainer:
         return log
 
     def run_training(self):
+        """Runs training."""
         train_labels = self._node_labels.index_select(0, self._indices["train"])
         train_indices = self._indices["train"]
         graph_data = (self._node_features, self._topology)
@@ -163,7 +164,16 @@ class Trainer:
         return self._model
 
 
-def plot_metrics(aggregator: Dict[str, List[Tuple[float, float]]], metric_name: str, axis):
+def plot_metrics(aggregator: Dict[str, List[Tuple[float, float]]], metric_name: str, axis: plt.Axes) -> None:
+    """Plots metrics from the given aggregator.
+
+    It will plot the given metric for training, validation and test.
+
+    Args:
+        aggregator (dict): metrics aggregator.
+        metric_name (str): name of the metric to be plotted.
+        axis (plt.Axes): axis on which plot should be drawn.
+    """
     metric_name = metric_name.upper()
     suffixes = ["train", "val", "test"]
     colors = ["blue", "green", "red"]

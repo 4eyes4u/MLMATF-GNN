@@ -1,19 +1,38 @@
-from typing import List, Tuple
+"""Definition of GCN."""
 import math
+from typing import List, Tuple
 
 import torch
 import torch.nn as nn
 
 
 class DropoutWrapper(nn.Module):
+    """Class that adds dropout layer on top of the module."""
+
     def __init__(self, fn: nn.Module, dropout_prob: float):
+        """Constructor.
+
+        Args:
+            fn (nn.Module): module to be encapsulated.
+            dropout_prob (float): probability of dropout.
+        """
         super().__init__()
 
         self._fn = fn
         self._activation = nn.ReLU()
         self._dropout = nn.Dropout(dropout_prob)
 
-    def forward(self, data):
+    def forward(self, data: Tuple[torch.Tensor, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Forward pass.
+
+        It requires topology due to compability.
+
+        Args:
+            data (tuple): input node features and graph topology.
+
+        Returns:
+            output (tuple): output node features and graph topology.
+        """
         topology = data[1]
         output = self._fn(data)[0]
         output = self._dropout(self._activation(output))
@@ -90,6 +109,16 @@ class GCN(nn.Module):
         self._net = nn.Sequential(*layers)
 
     def forward(self, data: Tuple[torch.Tensor, torch.Tensor]) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Forward pass.
+
+        Input needs to be fed as a tuple because GCN is defined as a sequential model.
+
+        Args:
+            data (tuple): input node features and graph topology.
+
+        Returns:
+            output (tuple): output node features and graph topology.
+        """
         output = self._net(data)
 
         return output

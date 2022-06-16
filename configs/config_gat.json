@@ -2,7 +2,7 @@
     "model_name": "GAT",
     "data_dir": ".\\data",
     "epochs": 300,
-    "lr": 0.005,
+    "lr": 0.05,
     "weight_decay": 0.0005,
     "model_kwargs": {
         "num_heads_per_layer": [8, 1],
