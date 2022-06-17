@@ -21,6 +21,6 @@ Istrenirana su tri različita modela - višeslojni perceptron, konvolutivna graf
 ## Pokretanje
 Projekat je implementiran u sklopu jupyter svesaka, pa je preporučeno sprovesti sledeće korake u korenu repozitorijuma:
 
-1. `$ conda create env --file environment.yml`
+1. `$ conda env create --file environment.yml`
 2. `$ conda activate mlmatf-gnn`
 3. `$ jupyter notebook`
