@@ -1,36 +1,26 @@
-# :heart::computer:Grafovske neuronske mreže sa mehanizmom pažnje-GAT:computer::heart:
+# :heart::computer:Grafovske Neuronske Mreže:computer::heart:
 
-Ovaj repozitorijum sadrži PyTorch implementaciju dva originalna rada o Grafovskim neuronskim mrežama GAT ([Petar Veličković](https://arxiv.org/abs/1710.10903) i [Thomas N. Kipf](https://arxiv.org/abs/1609.02907)). <br/>
-`Projekat je rađen u sklopu kursa Mašinsko učenje na Matematičkom fakultetu, Univerziteta u Beogradu.`
+Projekat ima za cilj da predstavi Grafovske neuronske mreže i pokaže primenu i kvalitet različitih modela korišćenih za klasifikaciju podataka na poznatom skupu **Cora**. U tu svrhu implementirana su dva naučna rada na ovu temu - [GAT](https://arxiv.org/abs/1710.10903) i [GCN](https://arxiv.org/abs/1609.02907).
 
-Ovaj projekat ima za cilj da predstavi Grafovske neuronske mreže i pokaže primenu i kvalitet različitih modela korišćenih za klasifikaciju podataka na poznatom skupu <b>Cora</b>.
+Projekat je rađen u sklopu kursa Mašinsko učenje na Matematičkom fakultetu, Univerziteta u Beogradu.
 
 ## Sadržaj
 
-#### 1. Teorija
+### 1. Teorija
 
-U ovom poglavlju uvodimo osnovne elemente teorije grafova, koji čine osnovu na kojoj se zasniva oblast Grafovskih neuronskih mreža sa mehanizmom pažnje. Pored toga objašnjen je koncept i struktura GAT-a kao neuronskih mreže koje rade sa podacima koji su predstavljeni i strukturirani grafom, koje koriste maskirane slojeve mehanizma pažnje kako bi unapredili i poboljšali nedostatke starijih algoritama koji su bili bazirani na grafovskim konvolutivnim mrežama.
+U ovom poglavlju uvodimo osnovne elemente teorije grafova, koji čine osnovu na kojoj se zasniva oblast grafovskih neuronskih mreža. Objašnjeni su koncepti konvolutivnih grafovskih neuronskih mreža kao i grafovskih mreža sa mehanizmom pažnje.
 
-#### 2. Upoznavanje sa podacima i vizualizacija
+### 2. Skup podataka i vizualizacija
 
-Skup podataka sa kojim radimo sadrži naučne radove iz različitih oblasti vezanih za Mašinsko učenje koji su klasifikovani u 7 kategorija. Tu spadaju:
-* Reinforcement Learning
-* Neural Networks
-* Case Based
-* Genetic Algorithms
-* Probabilistic Methods
-* Rule Learning
-* Theory
+Predstavljen je i analiziran skup podataka Cora sa kojim smo radili u okviru projekta. Prikazane su osnovne statistike poput broja čvorova i grana kao i izvedene poput broja suseda.
 
-U ovom skupu podataka čvorovi odgovaraju dokumentima, a ivice neusmerenim citatima između tih dokumenata.
+### 3. Trening i analiza
 
-<p align="center">
-<img src="pictures/vizualizacija.png" width="800"/>
-</p>
+Istrenirana su tri različita modela - višeslojni perceptron, konvolutivna grafovska neuronska mreža i grafovska mreža sa mehanizmom pažnje. Modeli su upoređeni i izvršena je topološka analiza rezultata gde je prikazano šta su modeli zapravo naučili.
 
-Naredni grafici prikazuju vezu između čvorova i njihove povezanosti sa ostalim čvorovima (naučnim radovima). Zaključujemo da je većina čvorova povezana sa <50 drugih čvorova, dok ih je svega par povezano sa više.
+## Pokretanje
+Projekat je implementiran u sklopu jupyter svesaka, pa je preporučeno sprovesti sledeće korake u korenu repozitorijuma:
 
-<p align="center">
-<img src="pictures/raspodela.png" width="850"/>
-</p>
-
+1. `$ conda create env --file environment.yml`
+2. `$ conda activate mlmatf-gnn`
+3. `$ jupyter notebook`
