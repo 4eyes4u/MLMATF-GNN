@@ -17,6 +17,7 @@ dependencies:
     - networkx==2.5
     - python-igraph==0.8.3
     - pycairo==1.20.0
+    - umap-learn==0.5.3
     - flake8
     - flake8-bugbear
     - flake8-builtins
